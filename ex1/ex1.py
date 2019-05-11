@@ -1,4 +1,5 @@
 import numpy as np
+import regression
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -30,101 +31,10 @@ def loadData(filename):
     return np.block([np.ones((data.shape[0], 1)), data[:, :-1]]), np.array([data[:, -1]]).T
 
 
-def computeCost(X, y, theta):
-    """
-    parameters:
-        X: 2D matrix where each row is an example and each column is a feature
-        y: column vector containing the labeled outcomes
-        theta: column vector containing the hypothesis
-
-    returns: <float> J
-        J: MSE cost for the training batch X with the hypothesis theta
-
-    Compute the mean-squared-error for the data in X with the hypothesis theta.
-    """
-    m = len(y)
-    error = np.dot(X, theta) - y
-    J = np.reciprocal(2.0 * m) * np.dot(error.T, error)
-    return J.flatten()[0]
-
-
-def featureNormalize(X):
-    """
-    parameters:
-        X: a 2D matrix where each row is an example and each column is a feature
-
-    returns: <float> (X_norm, mu, sigma)
-        X_norm: 2D matrix where each row is an example and each column is a feature, with all features normalized
-        mu: row vector where each entry is the mean of the feature in the corresponding column of X
-        sigma: row vector where each entry is the standard deviation of the feature in the corresponding column of X
-
-    Normalize the features of the input X.
-    """
-    X = X[:, 1:]
-    mu = np.mean(X, 0)
-    sigma = np.std(X, 0)
-    X_norm = np.block([np.ones((X.shape[0], 1)), (X - mu) / sigma])
-    return X_norm, mu, sigma
-
-
-def gradientDescent(X, y, theta, alpha, iterations):
-    """
-    parameters:
-        X: 2D matrix where each row is an example and each column is a feature
-        y: column vector containing the labeled outcomes
-        theta: column vector containing the hypothesis
-        alpha: learning rate
-        iterations: number of iterations of the algorithm to run
-
-    returns: <float> (theta, J)
-        theta: modified hypothesis after running gradient descent
-        J: column vector storing the cost at each iteration
-
-    Run gradient descent on the hypothesis theta.
-    """
-    m = len(y)
-    J = np.zeros((iterations, 1))
-    for i in range(iterations):
-        grad = np.dot(X.T, (np.dot(X, theta) - y))
-        theta -= (alpha / m) * grad
-        J[i] = computeCost(X, y, theta)
-    return theta, J
-
-
-def normalEquation(X, y):
-    """
-    parameters:
-        X: 2D matrix where each row is an example and each column is a feature
-        y: column vector containing the labeled outcomes
-
-    returns: <float> theta
-        theta: optimal hypothesis as computed by the normal equation
-
-    Solves a linear regression problem using the normal equation.
-    """
-    return np.dot(np.dot(np.linalg.pinv(np.dot(X.T, X)), X.T), y)
-
-
-def polyFit(x, n):
-    """
-    parameters:
-        x: column vector representing a single feature
-        n: polynomial degree
-
-    returns: <float> X
-        X: 2D matrix whose columns are the original feature to the jth power
-
-    Converts a single feature into a matrix representing a polynomial function of that feature.
-    """
-    X = np.ones(x.shape)
-    for i in range(1, n + 1):
-        X = np.block([[X, np.power(x, i)]])
-    return X
-
-
 if __name__ == '__main__':
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
+    linreg = regression.Regression()
 
     # Part 1.2: Plotting
     fig = plt.figure()
@@ -143,9 +53,9 @@ if __name__ == '__main__':
     iterations = 1500
     alpha = 0.01
 
-    J = computeCost(X, y, theta)
+    J = linreg.computeCost(X, y, theta)
     print('Initial cost for population data: {}'.format(J))
-    theta, J = gradientDescent(X, y, theta, alpha, iterations)
+    theta, J = linreg.gradientDescent(X, y, theta, alpha, iterations)
     print('Final cost for population data: {}'.format(J[-1][0]))
     print('Hypothesis for population data: [{0:0.4f}, {1:0.4f}] (expected: [{2}, {3}])'.format(
         theta[0, 0], theta[1, 0], optimal[0, 0], optimal[1, 0]))
@@ -160,7 +70,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(111, projection='3d')
     theta_0 = np.linspace(-10, 10, num=100)
     theta_1 = np.linspace(-1, 4, num=100)
-    J = np.array([[computeCost(X, y, np.block([[theta_0[i]], [theta_1[j]]]))
+    J = np.array([[linreg.computeCost(X, y, np.block([[theta_0[i]], [theta_1[j]]]))
                    for j in range(len(theta_1))] for i in range(len(theta_0))]).T
 
     ax.plot_surface(theta_0, theta_1, J, cmap=plt.cm.jet)
@@ -180,7 +90,7 @@ if __name__ == '__main__':
     # Part 2.1: Feature Normalization
     filename = 'ex1data2.txt'
     X, y = loadData(filename)
-    X, mu, sigma = featureNormalize(X)
+    X, mu, sigma = linreg.featureNormalize(X)
 
     # Part 2.2: Gradient Descent
     print('========== Part 2.2: Housing Data (GD) ==========')
@@ -188,9 +98,9 @@ if __name__ == '__main__':
     iterations = 1500
     alpha = 0.01
 
-    J = computeCost(X, y, theta)
+    J = linreg.computeCost(X, y, theta)
     print('Initial cost for housing data: {}'.format(J))
-    theta, J = gradientDescent(X, y, theta, alpha, iterations)
+    theta, J = linreg.gradientDescent(X, y, theta, alpha, iterations)
 
     plt.plot(np.arange(iterations), J, 'b-', label='Cost')
     plt.xlabel('Iteration')
@@ -204,7 +114,8 @@ if __name__ == '__main__':
     # Part 2.3: Normal Equation
     print('========== Part 2.3: Housing Data (NE) ==========')
     X, y = loadData(filename)
-    theta = normalEquation(X, y)
-    print('Final cost for housing data: {}'.format(computeCost(X, y, theta)))
+    theta = linreg.normalEquation(X, y)
+    print('Final cost for housing data: {}'.format(
+        linreg.computeCost(X, y, theta)))
     print('Hypothesis for housing data using normal equation: [{0:0.4f}, {1:0.4f}, {2:0.4f}]'.format(
         theta[0, 0], theta[1, 0], theta[2, 0]))
