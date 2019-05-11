@@ -1,4 +1,7 @@
-# pycache
+# Test files
+*/test*
+
+# __pycache__
 */__pycache__/*
 
 # MATLAB files
