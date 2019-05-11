@@ -15,8 +15,8 @@ class Regression:
         Compute the mean-squared-error for the data in X with the hypothesis theta.
         """
         m = len(y)
-        error = np.dot(X, theta) - y
-        J = np.reciprocal(2.0 * m) * np.dot(error.T, error)
+        error = (X @ theta) - y
+        J = np.reciprocal(2.0 * m) * (error.T @ error)
         return J.flatten()[0]
 
     def featureNormalize(self, X):
@@ -55,7 +55,7 @@ class Regression:
         m = len(y)
         J = np.zeros((iterations, 1))
         for i in range(iterations):
-            grad = np.dot(X.T, (np.dot(X, theta) - y))
+            grad = X.T @ ((X @ theta) - y)
             theta -= (alpha / m) * grad
             J[i] = self.computeCost(X, y, theta)
         return theta, J
@@ -71,7 +71,7 @@ class Regression:
 
         Solves a linear regression problem using the normal equation.
         """
-        return np.dot(np.dot(np.linalg.pinv(np.dot(X.T, X)), X.T), y)
+        return np.linalg.pinv(X.T @ X) @ X.T @ y
 
     def polyFit(self, x, n):
         """
