@@ -37,14 +37,12 @@ if __name__ == '__main__':
     linreg = regression.Regression()
 
     # Part 1.2: Plotting
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
     filename = 'ex1data1.txt'
     X, y = loadData(filename)
 
-    ax.plot(np.delete(X, 0, 1), y, 'rx', markersize=10, label=r'Training data')
-    ax.set_ylabel(r'Profit in \$10,000s')
-    ax.set_xlabel(r'Population of City in 10,000s')
+    plt.ylabel(r'Profit in \$10,000s')
+    plt.xlabel(r'Population of City in 10,000s')
+    plt.plot(X[:, 1], y, 'rx', markersize=10, label=r'Training data')
 
     # Part 1.3: Cost and Gradient Descent
     print('========== Part 1.3: Population Data (GD) ==========')
@@ -60,10 +58,10 @@ if __name__ == '__main__':
     print('Hypothesis for population data: [{0:0.4f}, {1:0.4f}] (expected: [{2}, {3}])'.format(
         theta[0, 0], theta[1, 0], optimal[0, 0], optimal[1, 0]))
 
-    ax.plot(X[:, -1], np.dot(X, theta), 'b-', label='Linear regression')
-    ax.legend()
+    plt.plot(X[:, 1], np.dot(X, theta), 'b-', label='Linear regression')
+    plt.legend()
     plt.show()
-    fig.clf()
+    plt.clf()
 
     # Part 1.4: Visualizing J
     fig = plt.figure()
