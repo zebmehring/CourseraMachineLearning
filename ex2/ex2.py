@@ -4,11 +4,21 @@ import logisticRegression
 
 
 def load_data(filename):
+    """
+    parameters:
+        <string> filename: file from which to read CSV data
+
+    returns:
+        <mxn> X: 2D matrix where each row is an example and each column is a feature
+        <mx1>: column vector containing the labeled outcomes
+
+    Load CSV data from a file into data structures for a logistic regression problem.
+    """
     try:
         f = open(filename, 'r')
     except FileNotFoundError:
         print('{} not found'.format(filename))
-        return []
+        return [], []
     data = None
     for line in f:
         ex = np.array([float(i) for i in line.split(',')])
@@ -17,13 +27,28 @@ def load_data(filename):
         else:
             data = ex
     f.close()
-    return np.block([np.ones((data.shape[0], 1)), data[:, :-1]]), data[:, -1]
+    X = np.block([np.ones((data.shape[0], 1)), data[:, :-1]]) # pad x_0 = 1 for all m
+    y = data[:, -1]
+    return X, y
 
 
 def map_feature(X1, X2, degree):
-    X1 = X1.reshape((len(X1), 1))
-    X2 = X2.reshape((len(X2), 1))
-    X = np.ones((X1.shape[0], 1))
+    """
+    parameters:
+        <mx1> X1: 1D vector containing m examples of an individual feature
+        <mx1> X2: 1D vector containing m examples of an individual feature
+        <int> degree: highest degree polynomial of each feature to generate
+
+    returns:
+        <mxn> X: 2D matrix whose columns are mapped to all possible combinations of polynomial 
+                 functions of the input features, up to and including the specified degree
+
+    Map two feature vectors to all degree^2 possible features which are products of polynomials
+    of the input features, but whose sum is no more than the specified degree.
+    """
+    X1 = X1.reshape((len(X1), 1))  # expand 1D array to column vector
+    X2 = X2.reshape((len(X2), 1))  # expand 1D array to column vector
+    X = np.ones((X1.shape[0], 1))  # pad x_0 = 1 for all m
     for i in range(1, degree + 1):
         for j in range(i + 1):
             X = np.block([X, np.power(X1, i - j) * np.power(X2, j)])
