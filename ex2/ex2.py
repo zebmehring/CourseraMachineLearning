@@ -37,7 +37,7 @@ if __name__ == '__main__':
              'ko', markersize=7, label=r'Not admitted')
 
     # Part 1.2: Compute Cost and Gradient
-    print('========== Parts 1.2-1.3: Cost, Gradient, and Optimization ==========')
+    print('========== Part 1: Cost, Gradient, and Optimization ==========')
     theta = np.zeros((X.shape[1],))
     J = logreg.cost(theta, X, y)
     print('Initial cost for exam data: {0:.3f} (expected 0.693)'.format(J))
@@ -57,3 +57,8 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
     plt.clf()
+
+    # Part 1.4: Predict
+    p = logreg.predict(theta, X)
+    print('Testing accuracy: {0:.1f}% (expected 89.0%)'.format(
+        np.mean(p == y) * 100))
