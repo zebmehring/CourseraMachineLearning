@@ -6,6 +6,8 @@
 
 # MATLAB files
 *.m
+*.mlx
+*.asv
 
 # Submission stuff
 */lib/*
