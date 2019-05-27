@@ -30,9 +30,25 @@ class LogisticRegression:
         returns:
             <mx1> y: 1D vector containing the prediction for each example in X
 
-        Predict the outcome of a batch of examples stored in X using the hypothesis theta.
+        Predict the outcome of logisitic regression for a batch of examples stored in X using the hypothesis theta.
         """
         return np.argmax(X @ theta.T, 1)
+
+    def predict_nn(self, X, weights, output_size):
+        """
+        parameters:
+            <mxn> X: 2D matrix where each row is an example and each column is a feature
+            <lxaxb> weights: list of 2D matricies containing weights for the neural network layers
+
+        returns:
+            <mx1> y: 1D vector containing the prediction for each example in X
+
+        Compute the output of a neural network using the weights provided. The architecture is specified by the dimensions of these weights.
+        """
+        a = X[:, 1:]
+        for Theta in weights:
+            a = self.sigmoid(np.block([np.ones((a.shape[0], 1)), a]) @ Theta.T)
+        return (np.argmax(a, 1) + 1) % output_size
 
     def sigmoid(self, z):
         """
