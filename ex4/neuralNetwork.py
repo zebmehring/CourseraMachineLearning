@@ -3,7 +3,7 @@ from scipy.optimize import minimize
 
 
 class NeuralNetwork:
-    def cost(self, Theta, X, y, reg=0):
+    def cost(self, X, y, Theta, layer_dims, l=0):
         """
         parameters:
             [<axb>] Theta: list of 2D matricies containing weights for the neural network layers
@@ -18,7 +18,26 @@ class NeuralNetwork:
         """
         np.seterr(divide='ignore', invalid='ignore')  # ignore log(0) errors
         m = len(y)
-        pass
+
+        # feedforward and compute the output
+        a = X
+        for theta in Theta:
+            a = self.sigmoid(np.block([np.ones((a.shape[0], 1)), a]) @ theta.T)
+        # reorder columns for 0-based indexing
+        a = np.block([a[:, -1].reshape((a.shape[0], 1)), a[:, :-1]])
+
+        # compute the summed cost for each label
+        cost = 0
+        for k in range(layer_dims[-1]):
+            y_k = np.where(y == k, 1, 0)
+            h_k = a[:, k]
+            cost += (y_k.T @ np.log(h_k)) + ((1 - y_k).T @ np.log(1 - h_k))
+
+        # compute the regularization term
+        reg = sum([sum(sum(np.square(theta[:, 1:]))) for theta in Theta])
+
+        # compute the total cost
+        return -(1 / m) * cost + (l / (2 * m)) * reg
 
     def predict(self, Theta, X):
         """
@@ -69,7 +88,8 @@ class NeuralNetwork:
 
 
         """
-        pass
+        grads = [np.zeros(theta.shape) for theta in Theta]
+        return grads
 
     def optimize(self):
         """
