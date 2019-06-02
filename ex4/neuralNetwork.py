@@ -10,7 +10,7 @@ class NeuralNetwork:
             <mx1> y: 1D vector containing the labeled outcomes
             [<axb>] Theta: list of 2D matricies containing weights for the neural network layers
             [<int>] layer_dims: list representing the size of each layer in the network
-            <float> l: regularization parameter (default 0)
+            <float> l: regularization parameter
         """
         self.X = X
         self.y = y
@@ -34,14 +34,29 @@ class NeuralNetwork:
     def update_lambda(self, l):
         self.l = l
 
+    def print_cost(self, theta):
+        cost = self.cost(theta)
+        print("Iteration {0}: {1}".format(self.iterations, cost))
+        self.iterations += 1
+
+    def feature_normalize(self):
+        """
+        Normalize the features of the dataset X.
+        """
+        mu = np.mean(self.X, 0)
+        sigma = np.std(self.X, 0)
+        self.X = (self.X - mu) / sigma
+
     def cost(self, theta, reorder=True):
         """
         parameters:
+            <ax1> theta: column-wise flattened vector containing the network weights
+            <bool> reorder: if true, move the last column of the network output to the front
 
         returns:
             <float> J: cost for the neural network with parameters Theta using the data from X
 
-        Compute the regularized cost for the data in X with the nerual network specified by Theta.
+        Compute the regularized cost the neural network using the weights specified by theta.
         """
         # np.seterr(divide='ignore', invalid='ignore')  # ignore log(0) errors
         Theta = self.reconstruct_Theta(theta)
@@ -70,17 +85,18 @@ class NeuralNetwork:
     def cost_grad(self, theta):
         """
         parameters:
-
+            <ax1> theta: column-wise flattened vector containing the network weights
 
         returns:
+            <ax1> grads: column-wise flattened vector containing the network gradients
 
-
-
+        Compute the gradient of the cost function using the weights specified by theta.
         """
         Theta = self.reconstruct_Theta(theta)
 
         grads = [np.zeros(Theta[i].shape) for i in range(len(Theta))]
         for t in range(self.m):
+            # feedforward a single example
             a = [self.X[t, :]]
             z = [None]
             for i in range(len(Theta)):
@@ -88,23 +104,34 @@ class NeuralNetwork:
                 a.append(self.sigmoid(z[-1]))
             y_t = np.where(np.arange(self.layer_dims[-1]) == self.y[t], 1, 0)
 
+            # compute the delta vector for each layer
             delta = [a[-1] - y_t]
             for i in range(len(a) - 2, 0, -1):
-                delta.insert(0, (Theta[i].T @ delta[0])
-                             * np.block([1, self.sigmoid_gradient(z[i])]))
+                delta.insert(0, (Theta[i].T @ delta[0]) *
+                             np.block([1, self.sigmoid_gradient(z[i])]))
                 delta[0] = delta[0][1:]
 
+            # accumulate the gradient
             for i in range(len(Theta)):
                 grads[i] = grads[i] + np.outer(delta[i], np.block([1, a[i]]))
 
+        # apply regularization to the gradients
         for i in range(len(Theta)):
             grads[i] = (1 / self.m) * grads[i] + (self.l / self.m) * \
                 np.block([np.zeros((Theta[i].shape[0], 1)), Theta[i][:, 1:]])
 
+        # return a flattened gradient vector
         return np.block([g.reshape(g.size, order='F') for g in grads])
 
     def cost_grad_numerical(self, theta):
         """
+        parameters:
+            <ax1> theta: column-wise flattened vector containing the network weights
+
+        returns:
+            <ax1> grads: column-wise flattened vector containing the network approximate-gradients
+
+        Numerically approximate the gradient of the cost function using the weights specified by theta.
         """
         grads = np.zeros(theta.size)
         perturbation = np.zeros(theta.size)
@@ -120,13 +147,12 @@ class NeuralNetwork:
     def predict(self, theta):
         """
         parameters:
-            [<axb>] Theta: list of 2D matricies containing weights for the neural network layers
-            <mxn> X: 2D matrix where each row is an example and each column is a feature
+            <ax1> theta: column-wise flattened vector containing the network weights
 
         returns:
-            <mx1> y: 1D vector containing the prediction for each example in X
+            <mx1> p: 1D vector containing the predictions for the data in X
 
-        Compute the output of a neural network using the weights provided. The architecture is specified by the dimensions of these weights.
+        Compute the output of a neural network with the weights specified by theta.
         """
         Theta = self.reconstruct_Theta(theta)
         a = self.X
@@ -160,6 +186,16 @@ class NeuralNetwork:
 
     def initialize_weights(self, n_in, n_out, epsilon_init, debug=False):
         """
+        parameters:
+            <int> n_in: number of neurons in the preceding layer
+            <int> n_out: number of neurons in the succeeding layer
+            <float> epsilon_init: range of randomized values
+            <bool> debug: if true, initialize nonrandom values
+
+        returns:
+            <outxin+1> theta: randomly initialized matrix of weights
+
+        Create a matrix of small, random initial weights.
         """
         if debug:
             W = np.zeros((n_out, n_in + 1))
@@ -169,31 +205,32 @@ class NeuralNetwork:
 
     def reconstruct_Theta(self, theta):
         """
+        parameters:
+            <ax1> theta: column-wise flattened vector containing the network weights
+
+        returns:
+            [<bxc>] Theta: list of 2D matricies containing the weights for each layer
+
+        Re-form the matrix versions of the network weights from a flattened vector theta.
         """
         Theta = []
         t_i = 0
         for i in range(len(self.layer_dims) - 1):
-            Theta.append(np.reshape(theta[t_i:t_i+((self.layer_dims[i] + 1) * self.layer_dims[i + 1])],
+            Theta.append(np.reshape(theta[t_i:t_i + ((self.layer_dims[i] + 1) * self.layer_dims[i + 1])],
                                     (self.layer_dims[i + 1], self.layer_dims[i] + 1), order='F'))
             t_i = (self.layer_dims[i] + 1) * self.layer_dims[i + 1]
         return Theta
 
-    def print_cost(self, theta):
-        """
-        """
-        cost = self.cost(theta)
-        print("Iteration {0}: {1}".format(self.iterations, cost))
-        self.iterations += 1
-
     def optimize(self, theta):
         """
         parameters:
-
+            <nx1> theta: column-wise flattened vector containing the initial network weights
 
         returns:
+            <float> J: cost for the hypothesis theta with the data from X
+            <nx1> theta: column-wise flattened vector containing the optimized network weights
 
-
-
+        Optimize the (flattened) weights of the network theta using the nonlinear CG optimization algorithm.
         """
         self.iterations = 1
         res = minimize(self.cost, theta, method='CG', callback=self.print_cost,
