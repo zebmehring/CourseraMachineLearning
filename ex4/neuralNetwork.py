@@ -15,6 +15,7 @@ class NeuralNetwork:
         self.X = X
         self.y = y
         self.m = len(y)
+        self.n = layer_dims[-1]
         self.Theta = Theta
         self.layer_dims = layer_dims
         self.l = l
@@ -25,6 +26,7 @@ class NeuralNetwork:
 
     def update_architecture(self, layer_dims):
         self.layer_dims = layer_dims
+        self.n = layer_dims[-1]
 
     def update_training_set(self, X, y):
         self.X = X
@@ -71,7 +73,7 @@ class NeuralNetwork:
 
         # compute the summed cost for each label
         cost = 0
-        for k in range(self.layer_dims[-1]):
+        for k in range(self.n):
             y_k = np.where(self.y == k, 1, 0)
             h_k = a[:, k]
             cost += (y_k.T @ np.log(h_k)) + ((1 - y_k).T @ np.log(1 - h_k))
@@ -93,32 +95,28 @@ class NeuralNetwork:
         Compute the gradient of the cost function using the weights specified by theta.
         """
         Theta = self.reconstruct_Theta(theta)
-
         grads = [np.zeros(Theta[i].shape) for i in range(len(Theta))]
-        for t in range(self.m):
-            # feedforward a single example
-            a = [self.X[t, :]]
-            z = [None]
-            for i in range(len(Theta)):
-                z.append(Theta[i] @ np.block([1, a[i]]))
-                a.append(self.sigmoid(z[-1]))
-            y_t = np.where(np.arange(self.layer_dims[-1]) == self.y[t], 1, 0)
 
-            # compute the delta vector for each layer
-            delta = [a[-1] - y_t]
-            for i in range(len(a) - 2, 0, -1):
-                delta.insert(0, (Theta[i].T @ delta[0]) *
-                             np.block([1, self.sigmoid_gradient(z[i])]))
-                delta[0] = delta[0][1:]
-
-            # accumulate the gradient
-            for i in range(len(Theta)):
-                grads[i] = grads[i] + np.outer(delta[i], np.block([1, a[i]]))
-
-        # apply regularization to the gradients
+        a = [np.c_[np.ones((self.X.shape[0], 1)), self.X]]
+        z = [None]
         for i in range(len(Theta)):
+            z.append(a[i] @ Theta[i].T)
+            a.append(np.c_[np.ones((z[-1].shape[0], 1)), self.sigmoid(z[-1])])
+        a[-1] = a[-1][:, 1:]  # remove bias on output
+        y_t = np.block([[np.where(np.arange(self.n) == self.y[t], 1, 0)]
+                        for t in range(self.m)])
+
+        # compute the delta vector for each layer
+        delta = [a[-1] - y_t]
+        for i in range(len(a) - 2, 0, -1):
+            delta.insert(0, (delta[0] @ Theta[i][:, 1:])
+                         * self.sigmoid_gradient(z[i]))
+
+        # compute and regularize the gradients
+        for i in range(len(Theta)):
+            grads[i] = delta[i].T @ a[i]
             grads[i] = (1 / self.m) * grads[i] + (self.l / self.m) * \
-                np.block([np.zeros((Theta[i].shape[0], 1)), Theta[i][:, 1:]])
+                np.c_[np.zeros((Theta[i].shape[0], 1)), Theta[i][:, 1:]]
 
         # return a flattened gradient vector
         return np.block([g.reshape(g.size, order='F') for g in grads])
