@@ -1,18 +1,17 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy.io
-import neuralNetwork
+from scipy.io import loadmat
+from neuralNetwork import NeuralNetwork
 
 
 if __name__ == '__main__':
     layer_dims = [400, 25, 10]
-    data = scipy.io.loadmat('ex4data1.mat')
+    data = loadmat('ex4data1.mat')
     X, y = (data['X'], data['y'])
     y = np.where(y == 10, 0, y).reshape(y.size).astype(float)
-    data = scipy.io.loadmat('ex4weights.mat')
+    data = loadmat('ex4weights.mat')
     Theta = [data['Theta1'], data['Theta2']]
     theta = np.block([t.reshape(t.size, order='F') for t in Theta])
-    nn = neuralNetwork.NeuralNetwork(X, y, Theta, layer_dims, 0)
+    nn = NeuralNetwork(X, y, Theta, layer_dims, 0)
 
     print('========== Part 1.3: Feedforward and Cost Function ==========')
     J = nn.cost(theta)
@@ -42,7 +41,7 @@ if __name__ == '__main__':
     Theta = [nn.initialize_weights(sample_dims[i], sample_dims[i + 1], None, debug=True)
              for i in range(len(sample_dims) - 1)]
     theta = np.block([t.reshape(t.size, order='F') for t in Theta])
-    sample_nn = neuralNetwork.NeuralNetwork(X_s, y_s, Theta, sample_dims)
+    sample_nn = NeuralNetwork(X_s, y_s, Theta, sample_dims)
 
     grads = sample_nn.cost_grad(theta)
     n_grads = sample_nn.cost_grad_numerical(theta)
