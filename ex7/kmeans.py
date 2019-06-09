@@ -1,35 +1,109 @@
 import numpy as np
 
 
-class Kmeans:
+class KMeans:
     def __init__(self, X, k, iters=100):
         """
         parameters:
             <mxn> X: 2D matrix where each row is an example and each column is a feature
             <int> k: number of clusters
-            <int> iters: number of iterations on which to run kmeans
+            <int> iters: number of iterations for which to run k-means
         """
         self.X = X
         self.m, self.n = X.shape
         self.k = k
         self.iters = iters
         self.mu = np.array([[None for _ in range(self.n)]
-                            for _ in range(self.m)])
+                            for _ in range(self.k)])
         self.c = np.array([None for _ in range(self.m)])
 
-    def cost(self):
-        return (1 / self.m) * sum(np.square(np.linalg.norm(self.X - [self.mu[i, :] for i in self.c], axis=1)))
+    def update_parameters(self, X=None, k=None, iters=None):
+        if X is not None:
+            self.X = X
+            self.m, self.n = X.shape
+        if k is not None:
+            self.k = k
+        if iters is not None:
+            self.iters = iters
+        self.mu = np.array([[None for _ in range(self.n)]
+                            for _ in range(self.k)])
+        self.c = np.array([None for _ in range(self.m)])
 
-    def compute_centroid(self):
-        pass
+    def distance(self, x1, x2):
+        """
+        parameters:
+            <nx1> x1: first vector
+            <nx1> x2: second vector
 
-    def color(self):
-        pass
+        returns:
+            <float> d: squared norm of the difference between the two vectors
+
+        Comptue the square length of the difference between two n-dimensional vectors.
+        """
+        return np.square(np.linalg.norm(x1 - x2))
+
+    def distortion(self, clustering, colors):
+        """
+        parameters:
+            <kxn> clustering: 2D matrix where each row is the centroid of a cluster
+            <mx1> colors: vector where the ith entry is the color of the ith example
+
+        returns:
+            <float> J: distortion for the given clustering on the dataset
+
+        Compute the distortion function for a given clustering and color assignment.
+        """
+        return (1 / self.m) * sum([self.distance(self.X[i], clustering[i]) for i in colors])
+
+    def compute_centroid(self, colors):
+        """
+        parameters:
+            <kx1> colors: vector where the ith entry is the color of the ith example
+
+        returns:
+            <kxn> centroids: 2D matrix where the ith row is the centroid of color i
+
+        Compute the centroids for each color in the clustering.
+        """
+        centroids = np.empty(self.k)
+        for color in range(self.k):
+            points = self.X[np.where(color == colors)]
+            centroids[color] = np.mean(points, axis=0)
+        return centroids
+
+    def color(self, clustering):
+        """
+        parameters:
+            <kxn> clustering: 2D matrix where each row is the centroid of a cluster
+
+        returns:
+            <mx1> colors: vector where the ith entry is the color of the ith example
+
+        Compute the color of each point for a given clustering and dataset.
+        """
+        colors = np.empty(self.m)
+        for i in range(self.m):
+            colors[i] = np.argmin([self.distance(self.X[i], clustering[j])
+                                   for j in range(self.k)])
+        return colors
 
     def cluster(self):
-        clusters = []
-        costs = []
+        """
+        Run the k-means clustering algorithm for iters iterations and update the class' members
+        to be the best clusters found for the data.
+        """
+        clusterings = []
+        distortions = []
         for _ in range(self.iters):
             r = [np.random.randint(0, self.m) for _ in range(self.k)]
-            self.mu = self.X[r]
-        self.mu = clusters[np.argmin(costs)]
+            clustering = np.zeros((self.k, self.n))
+            _clustering = self.X[r]
+            while not np.array_equal(_clustering, clustering):
+                clustering = _clustering
+                colors = self.color(_clustering)
+                _clustering = self.compute_centroid(colors)
+                _clustering = np.round(_clustering, decimals=3)
+            clusterings.append(clustering)
+            distortions.append(self.distortion(clustering, colors))
+        self.mu = clusterings[np.argmin(distortions)]
+        self.c = self.color(self.mu)
