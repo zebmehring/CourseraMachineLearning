@@ -10,7 +10,8 @@ if __name__ == '__main__':
 
     # ==================== Part 1.1 Finding Clusters ====================
     data = loadmat('ex7data2.mat')
-    kmeans = KMeans(data['X'], 3)
+    X = data['X']
+    kmeans = KMeans(X, 3)
     initial_centroids = np.array([[3, 3], [6, 2], [8, 5]])
     colors = kmeans.color(initial_centroids)
     assert np.array_equal(colors[0:3], np.array([0, 2, 1]))
@@ -23,13 +24,21 @@ if __name__ == '__main__':
     assert np.allclose(centroids, expected_centroids)
 
     # ==================== Part 1.3 K-Means ====================
-    kmeans.update_parameters(X=data['X'], k=3, max_iters=10)
+    kmeans.update_parameters(X=X, k=3, max_iters=10)
     kmeans.cluster()
     expected_mu = np.array([[1.9540, 5.0256],
                             [6.0337, 3.0005],
                             [3.0437, 1.0154]])
     assert np.all([np.any([np.allclose(i, j, atol=1e-4) for j in kmeans.mu])
                    for i in expected_mu])
+
+    styles = ['bo', 'ro', 'go']
+    colors = [0, 1, 2]
+    for color, style in zip(colors, styles):
+        c = X[np.where(color == kmeans.c)]
+        plt.plot(c[:, 0], c[:, 1], style)
+        plt.plot(kmeans.mu[color, 0], kmeans.mu[color, 1], 'kx')
+    plt.show()
 
     # ==================== Part 1.4 K-Means for Pixels ====================
     X = plt.imread('bird_small.png')
