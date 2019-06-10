@@ -1,8 +1,9 @@
 import numpy as np
+from math import inf
 
 
 class KMeans:
-    def __init__(self, X, k, iters=100):
+    def __init__(self, X, k, iters=50, max_iters=inf):
         """
         parameters:
             <mxn> X: 2D matrix where each row is an example and each column is a feature
@@ -13,11 +14,12 @@ class KMeans:
         self.m, self.n = X.shape
         self.k = k
         self.iters = iters
+        self.max_iters = max_iters
         self.mu = np.array([[None for _ in range(self.n)]
                             for _ in range(self.k)])
         self.c = np.array([None for _ in range(self.m)])
 
-    def update_parameters(self, X=None, k=None, iters=None):
+    def update_parameters(self, X=None, k=None, iters=None, max_iters=None):
         if X is not None:
             self.X = X
             self.m, self.n = X.shape
@@ -25,6 +27,8 @@ class KMeans:
             self.k = k
         if iters is not None:
             self.iters = iters
+        if max_iters is not None:
+            self.max_iters = max_iters
         self.mu = np.array([[None for _ in range(self.n)]
                             for _ in range(self.k)])
         self.c = np.array([None for _ in range(self.m)])
@@ -53,9 +57,9 @@ class KMeans:
 
         Compute the distortion function for a given clustering and color assignment.
         """
-        return (1 / self.m) * sum([self.distance(self.X[i], clustering[i]) for i in colors])
+        return (1 / self.m) * sum([self.distance(self.X[i], clustering[colors[i]]) for i in range(self.m)])
 
-    def compute_centroid(self, colors):
+    def compute_centroids(self, colors):
         """
         parameters:
             <kx1> colors: vector where the ith entry is the color of the ith example
@@ -65,9 +69,11 @@ class KMeans:
 
         Compute the centroids for each color in the clustering.
         """
-        centroids = np.empty(self.k)
+        centroids = np.empty((self.k, self.n))
         for color in range(self.k):
             points = self.X[np.where(color == colors)]
+            if points.size < 1:
+                raise self.EmptyClusterError
             centroids[color] = np.mean(points, axis=0)
         return centroids
 
@@ -81,11 +87,7 @@ class KMeans:
 
         Compute the color of each point for a given clustering and dataset.
         """
-        colors = np.empty(self.m)
-        for i in range(self.m):
-            colors[i] = np.argmin([self.distance(self.X[i], clustering[j])
-                                   for j in range(self.k)])
-        return colors
+        return np.array([np.argmin([self.distance(i, j) for j in clustering]) for i in self.X], dtype=int)
 
     def cluster(self):
         """
@@ -98,12 +100,19 @@ class KMeans:
             r = [np.random.randint(0, self.m) for _ in range(self.k)]
             clustering = np.zeros((self.k, self.n))
             _clustering = self.X[r]
-            while not np.array_equal(_clustering, clustering):
-                clustering = _clustering
-                colors = self.color(_clustering)
-                _clustering = self.compute_centroid(colors)
-                _clustering = np.round(_clustering, decimals=3)
+            i = 0
+            try:
+                while not np.allclose(_clustering, clustering) and i < self.max_iters:
+                    clustering = _clustering
+                    colors = self.color(_clustering)
+                    _clustering = self.compute_centroids(colors)
+                    i += 1
+            except self.EmptyClusterError:
+                continue
             clusterings.append(clustering)
             distortions.append(self.distortion(clustering, colors))
         self.mu = clusterings[np.argmin(distortions)]
         self.c = self.color(self.mu)
+
+    class EmptyClusterError(Exception):
+        pass
