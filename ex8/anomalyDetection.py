@@ -4,19 +4,21 @@ import numpy as np
 def estimate_gaussian(X):
     mu = np.mean(X, axis=0)
     sigma = np.std(X, axis=0)
-    return mu, sigma
+    Sigma = np.cov(X, rowvar=False)
+    return mu, sigma, Sigma
 
 
-def multivariate_gaussian(X, mu, sigma):
+def anomaly_detection(X, mu, sigma):
+    pass
+
+
+def multivariate_gaussian(X, mu, Sigma):
     from math import pi
     from numpy.linalg import pinv, det
     k = mu.size
-    sigma = np.square(sigma)
-    if sigma.ndim == 1 or sigma.shape[0] == 1 or sigma.shape[1] == 1:
-        sigma = np.diag(sigma)
     X = X - mu
-    p = np.power(2 * pi, -k / 2) * np.power(det(sigma), -0.5) * \
-        np.exp(-0.5 * np.sum((X @ pinv(sigma)) * X, axis=1))
+    p = np.power(2 * pi, -k / 2) * np.power(det(Sigma), -0.5) * \
+        np.exp(-0.5 * np.sum((X @ pinv(Sigma)) * X, axis=1))
     return p
 
 
