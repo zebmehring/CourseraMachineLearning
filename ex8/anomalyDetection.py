@@ -9,7 +9,13 @@ def estimate_gaussian(X):
 
 
 def anomaly_detection(X, mu, sigma):
-    pass
+    from math import pi
+    from functools import reduce
+    from operator import mul
+    n = X.shape[1]
+    p = [np.power(2 * pi, -0.5) * np.power(sigma[j], -1) *
+         np.exp(-0.5 * np.square((X[:, j] - mu[j]) / sigma[j])) for j in range(n)]
+    return reduce(mul, p, 1)
 
 
 def multivariate_gaussian(X, mu, Sigma):
