@@ -3,6 +3,17 @@ import numpy as np
 
 class CollaborativeFiltering:
     def normalize(self, Y, R):
+        """
+        parameters:
+            <mxu> Y: 2D matrix where Y[i, j] is the rating of movie i by user j (or 0)
+            <mxu> R: boolean-valued matrix where R[i, j] = 1 iff Y[i, j] != 0
+
+        returns:
+            <mx1> Y_mean: vector containing the mean rating of each movie
+            <mxu> Y_norm: 2D matrix equivalent to Y but rescaled to have 0 mean
+
+        Rescale the ratings in Y to have zero mean.
+        """
         m, n = Y.shape
         Y_mean = [np.mean(Y[i, R[i, :] == 1]) for i in range(m)]
         Y_norm = np.zeros(Y.shape)
@@ -11,11 +22,35 @@ class CollaborativeFiltering:
         return np.array(Y_mean), np.array(Y_norm)
 
     def extract_params(self, theta, params):
+        """
+        parameters:
+            <(m*n+n*u)x1> theta: column-wise flattened vector containing the hypothesis matrices (X, Theta)
+            <dict> params: dictionary containing information about the shape of X and Theta
+
+        returns:
+            <mxn> X: 2D matrix where X[i, j] is the amount of feature j in movie i
+            <uxn> Theta: 2D matrix where Theta[i, j] is proportional to how much user i likes feature j
+
+        Reconstruct the parameter matrices X and Theta from theta.
+        """
         X = np.reshape(theta[:params['X.size']], params['X.shape'], 'F')
         Theta = np.reshape(theta[params['X.size']:], params['T.shape'], 'F')
         return X, Theta
 
     def cost(self, theta, Y, R, params, reg=0):
+        """
+        parameters:
+            <(m*n+n*u)x1> theta: column-wise flattened vector containing the hypothesis matrices (X, Theta)
+            <mxu> Y: 2D matrix where Y[i, j] is the rating of movie i by user j (or 0)
+            <mxu> R: boolean-valued matrix where R[i, j] = 1 iff Y[i, j] != 0
+            <dict> params: dictionary containing information about the shape of X and Theta
+            <float> reg: regularization parameter
+
+        returns:
+            <float> J: cost for the hypothesis theta
+
+        Compute the cost of the collaborative filtering algorithm with flattened hypothesis theta.
+        """
         X, Theta = self.extract_params(theta, params)
         err = ((X @ Theta.T) * R) - (Y * R)
         r = reg * (theta @ theta.T)
@@ -23,6 +58,19 @@ class CollaborativeFiltering:
         return J
 
     def grad(self, theta, Y, R, params, reg=0):
+        """
+        parameters:
+            <(m*n+n*u)x1> theta: column-wise flattened vector containing the hypothesis matrices (X, Theta)
+            <mxu> Y: 2D matrix where Y[i, j] is the rating of movie i by user j (or 0)
+            <mxu> R: boolean-valued matrix where R[i, j] = 1 iff Y[i, j] != 0
+            <dict> params: dictionary containing information about the shape of X and Theta
+            <float> reg: regularization parameter
+
+        returns:
+            <(m*n+n*u)x1> grads: column-wise flattened vector containing the gradients of the hypothesis
+
+        Analytically compute the gradient of the collaborative filtering cost function with respect to each parameter.
+        """
         X, Theta = self.extract_params(theta, params)
         X_grad = np.zeros(X.shape)
         Theta_grad = np.zeros(Theta.shape)
@@ -47,12 +95,16 @@ class CollaborativeFiltering:
     def num_grad(self, theta, Y, R, params, reg=0):
         """
         parameters:
-            <ax1> theta: column-wise flattened vector containing the network weights
+            <(m*n+n*u)x1> theta: column-wise flattened vector containing the hypothesis matrices (X, Theta)
+            <mxu> Y: 2D matrix where Y[i, j] is the rating of movie i by user j (or 0)
+            <mxu> R: boolean-valued matrix where R[i, j] = 1 iff Y[i, j] != 0
+            <dict> params: dictionary containing information about the shape of X and Theta
+            <float> reg: regularization parameter
 
         returns:
-            <ax1> grads: column-wise flattened vector containing the network approximate-gradients
+            <(m*n+n*u)x1> num_grads: column-wise flattened vector containing the numerically-approximated gradients
 
-        Numerically approximate the gradient of the cost function using the weights specified by theta.
+        Numerically approximate the gradient of the cost function using the values specified by theta.
         """
         grads = np.zeros(theta.size)
         perturbation = np.zeros(theta.size)
@@ -66,6 +118,15 @@ class CollaborativeFiltering:
         return grads
 
     def check_grad(self, reg=0):
+        """
+        parameters:
+            <float> reg: regularization parameter
+
+        returns:
+            <bool> succ: True if the analytical and numerical gradients agree to one part in 1 billion
+
+        Verify the correctness of self.grad() by checking it against self.num_grad() on a small sample.
+        """
         from numpy.linalg import norm
         X_s = np.random.rand(4, 3)
         Theta_s = np.random.rand(5, 3)
@@ -83,6 +144,21 @@ class CollaborativeFiltering:
         return diff < 1e-9
 
     def optimize(self, X, Theta, Y, R, reg=0):
+        """
+        parameters:
+            <mxn> X: 2D matrix where X[i, j] is the amount of feature j in movie i
+            <uxn> Theta: 2D matrix where Theta[i, j] is proportional to how much user i likes feature j
+            <mxu> Y: 2D matrix where Y[i, j] is the rating of movie i by user j (or 0)
+            <mxu> R: boolean-valued matrix where R[i, j] = 1 iff Y[i, j] != 0
+            <float> reg: regularization parameter
+
+        returns:
+            <float> J: cost for the hypothesis theta with the data from X
+            <uxm> X: optimized feature matrix
+            <mxn> Theta: optimized hypothesis matrix
+
+        Optimize the collaborative filtering hypothesis using the nonlinear CG optimization algorithm.
+        """
         from scipy.optimize import minimize
         theta = np.block([X.flatten('F'), Theta.flatten('F')])
         params = {'X.size': X.size, 'T.size': Theta.size,
