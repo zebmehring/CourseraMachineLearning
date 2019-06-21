@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.io import loadmat
 from math import isclose
 from anomalyDetection import *
-from recommenderSystem import *
+from recommenderSystem import CollaborativeFiltering
 
 if __name__ == '__main__':
     plt.rc('text', usetex=True)
@@ -50,9 +50,25 @@ if __name__ == '__main__':
     # ==================== Part 2.1 Dataset ====================
     data = loadmat('ex8_movies.mat')
     Y, R = (data['Y'], data['R'])
-
-    # ==================== Part 2.2 Collaborative Filtering ====================
     data = loadmat('ex8_movieParams.mat')
     X, Theta = (data['X'], data['Theta'])
-    n_movies, n_features = X.shape
-    n_users, _ = Theta.shape
+    cofi = CollaborativeFiltering()
+
+    # ==================== Part 2.2 Collaborative Filtering ====================
+    n_users, n_movies, n_features = (4, 5, 3)
+    X_t, Theta_t = (X[:n_movies, :n_features], Theta[:n_users, :n_features])
+    Y_t, R_t = (Y[:n_movies, :n_users], R[:n_movies, :n_users])
+    theta = np.block([X_t.flatten('F'), Theta_t.flatten('F')])
+    params = {'X.size': X_t.size, 'T.size': Theta_t.size,
+              'X.shape': X_t.shape, 'T.shape': Theta_t.shape}
+    J = cofi.cost(theta, Y_t, R_t, params)
+    assert isclose(J, 22.22, rel_tol=1e-3)
+
+    assert cofi.check_grad()
+
+    J = cofi.cost(theta, Y_t, R_t, params, reg=1.5)
+    assert isclose(J, 31.34, rel_tol=1e-3)
+
+    assert cofi.check_grad(1.25)
+
+    J, X, Theta = cofi.optimize(X, Theta, Y, R, debug=True)
