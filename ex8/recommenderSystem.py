@@ -2,6 +2,14 @@ import numpy as np
 
 
 class CollaborativeFiltering:
+    def normalize(self, Y, R):
+        m, n = Y.shape
+        Y_mean = [np.mean(Y[i, R[i, :] == 1]) for i in range(m)]
+        Y_norm = np.zeros(Y.shape)
+        for i in range(m):
+            Y_norm[i, R[i, :] == 1] = Y[i, R[i, :] == 1] - Y_mean[i]
+        return np.array(Y_mean), np.array(Y_norm)
+
     def extract_params(self, theta, params):
         X = np.reshape(theta[:params['X.size']], params['X.shape'], 'F')
         Theta = np.reshape(theta[params['X.size']:], params['T.shape'], 'F')
@@ -36,7 +44,7 @@ class CollaborativeFiltering:
 
         return np.block([X_grad.flatten('F'), Theta_grad.flatten('F')])
 
-    def grad_numerical(self, theta, Y, R, params, reg=0):
+    def num_grad(self, theta, Y, R, params, reg=0):
         """
         parameters:
             <ax1> theta: column-wise flattened vector containing the network weights
@@ -70,25 +78,18 @@ class CollaborativeFiltering:
         params = {'X.size': X.size, 'X.shape': X.shape,
                   'T.size': Theta.size, 'T.shape': Theta.shape}
         grad = self.grad(theta, Y, R, params, reg)
-        num_grad = self.grad_numerical(theta, Y, R, params, reg)
+        num_grad = self.num_grad(theta, Y, R, params, reg)
         diff = norm(num_grad - grad) / norm(num_grad + grad)
         return diff < 1e-9
 
-    def print_cost(self, theta):
-        print("Evaluating gradient...")
-
-    def optimize(self, X, Theta, Y, R, reg=0, debug=False):
+    def optimize(self, X, Theta, Y, R, reg=0):
         from scipy.optimize import minimize
         theta = np.block([X.flatten('F'), Theta.flatten('F')])
         params = {'X.size': X.size, 'T.size': Theta.size,
                   'X.shape': X.shape, 'T.shape': Theta.shape}
-        options = {'maxiter': 50, 'disp': True}
-        if debug:
-            cbfn = self.print_cost
-        else:
-            cbfn = None
-        theta = minimize(self.cost, theta, args=(Y, R, params, reg), callback=cbfn,
-                         method='BFGS', jac=self.grad, options=options).x
+        options = {'maxiter': 100, 'disp': True}
+        theta = minimize(self.cost, theta, args=(Y, R, params, reg),
+                         method='CG', jac=self.grad, options=options).x
         J = self.cost(theta, Y, R, params, reg)
         X, Theta = self.extract_params(theta, params)
         return J, X, Theta

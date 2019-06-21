@@ -71,4 +71,26 @@ if __name__ == '__main__':
 
     assert cofi.check_grad(1.25)
 
-    J, X, Theta = cofi.optimize(X, Theta, Y, R, debug=True)
+    # ==================== Part 2.3 Learning Movie Recommendations ====================
+    with open('movie_ids.txt', 'r') as f:
+        movie_list = [' '.join(line.split(' ')[1:]).strip() for line in f]
+
+    indices = [0, 97, 6, 11, 53, 63, 65, 68, 182, 225, 354]
+    ratings = [4, 2, 3, 5, 4, 5, 3, 5, 4, 5, 5]
+    my_ratings = np.array([ratings[indices.index(i)] if i in indices else 0
+                           for i in range(1682)])
+
+    data = loadmat('ex8_movies.mat')
+    Y = np.c_[my_ratings, Y]
+    R = np.c_[my_ratings != 0, R]
+    Y_mean, Y_norm = cofi.normalize(Y, R)
+    X = np.random.randn(Y.shape[0], 10)
+    Theta = np.random.randn(Y.shape[1], 10)
+    J, X, Theta = cofi.optimize(X, Theta, Y, R, reg=10)
+
+    p = X @ Theta.T
+    my_predictions = [(r, i) for i, r in enumerate(p[:, 0] + Y_mean)]
+    my_predictions = sorted(my_predictions, reverse=True)
+    print('Top movie rankings:')
+    for i in range(10):
+        print('#{0:2d}: {1} (rated: {2:0.1f})'.format(i+1, movie_list[my_predictions[i][1]], my_predictions[i][0]))
