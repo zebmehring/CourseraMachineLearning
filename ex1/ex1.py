@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     J = linreg.computeCost(X, y, theta)
     print('Initial cost for population data: {}'.format(J))
-    theta, J = linreg.gradientDescent(X, y, theta, alpha, iterations)
+    theta, J = linreg.batchGradientDescent(X, y, theta, alpha, iterations)
     print('Final cost for population data: {}'.format(J[-1][0]))
     print('Hypothesis for population data: [{0:0.4f}, {1:0.4f}] (expected: [{2}, {3}])'.format(
         theta[0, 0], theta[1, 0], optimal[0, 0], optimal[1, 0]))
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     J = linreg.computeCost(X, y, theta)
     print('Initial cost for housing data: {}'.format(J))
-    theta, J = linreg.gradientDescent(X, y, theta, alpha, iterations)
+    theta, J = linreg.batchGradientDescent(X, y, theta, alpha, iterations)
 
     plt.plot(np.arange(iterations), J, 'b-', label='Cost')
     plt.xlabel('Iteration')

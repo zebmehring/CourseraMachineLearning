@@ -37,7 +37,7 @@ class Regression:
         X_norm = np.block([np.ones((X.shape[0], 1)), (X - mu) / sigma])
         return X_norm, mu, sigma
 
-    def gradientDescent(self, X, y, theta, alpha, iterations):
+    def stochasticGradientDescent(self, X, y, theta, alpha, iterations, conv=False):
         """
         parameters:
             X: 2D matrix where each row is an example and each column is a feature
@@ -50,7 +50,60 @@ class Regression:
             theta: modified hypothesis after running gradient descent
             J: column vector storing the cost at each iteration
 
-        Run gradient descent on the hypothesis theta.
+        Run stochastic gradient descent on the hypothesis theta.
+        """
+        m, n = X.shape
+        c1, c2 = (1, 1)
+        J = np.zeros(iterations * m * n)
+        for r in range(iterations):
+            for i in range(m):
+                grad = ((X[i, :] @ theta) - y[i, :])
+                for j in range(n):
+                    k = (r * m * n) + (i * n + j)
+                    alpha = c1 / (k + c2) if conv else alpha
+                    theta[j] -= alpha * grad * X[i, j]
+                    J[k] = self.computeCost(X, y, theta)
+        return theta, J
+
+    def miniBatchGradientDescent(self, X, y, theta, alpha, steps, b):
+        """
+        parameters:
+            X: 2D matrix where each row is an example and each column is a feature
+            y: column vector containing the labeled outcomes
+            theta: column vector containing the hypothesis
+            alpha: learning rate
+            steps: number of iterations of the algorithm to run
+
+        returns: <float> (theta, J)
+            theta: modified hypothesis after running gradient descent
+            J: column vector storing the cost at each iteration
+
+        Run mini-batch gradient descent on the hypothesis theta.
+        """
+        from math import ceil
+        iterations = ceil(X.shape[0] / steps)
+        J = np.zeros(iterations)
+        for i in range(iterations):
+            r = np.random.randint(low=0, high=X.shape[0], size=b)
+            grad = X[r, :].T @ ((X[r, :] @ theta) - y[r])
+            theta -= (alpha / b) * grad
+            J[i] = self.computeCost(X, y, theta)
+        return theta, J
+
+    def batchGradientDescent(self, X, y, theta, alpha, iterations):
+        """
+        parameters:
+            X: 2D matrix where each row is an example and each column is a feature
+            y: column vector containing the labeled outcomes
+            theta: column vector containing the hypothesis
+            alpha: learning rate
+            iterations: number of iterations of the algorithm to run
+
+        returns: <float> (theta, J)
+            theta: modified hypothesis after running gradient descent
+            J: column vector storing the cost at each iteration
+
+        Run batch gradient descent on the hypothesis theta.
         """
         m = len(y)
         J = np.zeros((iterations, 1))
